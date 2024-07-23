@@ -27,7 +27,7 @@ uniform float u_cloudStepDelta;
 uniform int u_lightSteps;
 uniform float u_lightStepDelta;
 
-// TODO: change hash
+
 float hash( float n )
 {
     return fract( n*17.0*fract( n*0.3183099 ) );
@@ -84,7 +84,7 @@ float SampleFBM(vec3 pos) {
     return max(min(fbm_8(pos), 1.), 0.);
 }
 
-// TODO: add gui options
+
 float SampleCoudDensity(float cloudSDF, vec3 worldPos, float curTime) {
     float cloud = smoothstep(0.0, 50., -cloudSDF) * 0.011;
 
@@ -141,7 +141,6 @@ float GetSceneDistance(vec3 point) {
     return sdEllipsoid(point, vec3(50., 30., 30.));
 }
 
-// Perfecto
 float RayMarch(vec3 ray_origin, vec3 ray_dir) {
     float distance = 0.;
 
@@ -162,7 +161,7 @@ float HGPhase(float g, float mu) {
 }
 
 float PhaseFrostbite(float mu) {
-    return mix(HGPhase(0.8, mu), HGPhase(-0.8, mu), 0.5);
+    return mix(HGPhase(0.5, mu), HGPhase(-0.5, mu), 0.4);
 }
 
 vec3 MultipleOctaveScattering(float density, float mu) {
@@ -217,7 +216,6 @@ vec3 SampleLightEnergy(vec3 rayOrigin, float mu, float curTime) {
     return beersLaw * powder;
 }
 
-// perfecto
 vec4 GetColor(vec3 rayOrigin, vec3 rayDirection, float distTravelled, float curTime) {
     float cloudTransmittance = 1.0;
     vec3 cloudScattering = vec3(0.0);
@@ -251,8 +249,6 @@ vec4 GetColor(vec3 rayOrigin, vec3 rayDirection, float distTravelled, float curT
             if (cloudDensity > u_densityThreshold) {
                 Scatering = ambientLight + sunLight * SampleLightEnergy(samplePos, mu, curTime);
 
-                // TODO: check why Frostbite Scattering integration improvement dose not work
-                // "correct" :
                 // integScatt = (Scatering - Scatering * exp(-cloudDensity * u_cloudStepDelta)) / cloudDensity;
                 integScatt = (Scatering - Scatering * exp(-cloudDensity * u_cloudStepDelta));
 
@@ -273,7 +269,7 @@ vec4 GetColor(vec3 rayOrigin, vec3 rayDirection, float distTravelled, float curT
     return vec4(pow(cloudScattering, vec3(1.0/2.2)), 1. - cloudTransmittance);
 }
 
-// Perfecto
+
 void main( ) {
     // Calculate uvs
     vec2 uv = (2.0 * gl_FragCoord.xy - u_resolution.xy);

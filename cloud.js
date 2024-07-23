@@ -40,8 +40,9 @@ const cloudUniforms = {
     updateCloud: function() {
         let uniforms = cube.material.uniforms;
 
-        let sun = new THREE.Vector3();
-        uniforms.u_sunDirection.value = sun.setFromSphericalCoords(1, -this.sunPhi, this.sunTheta);
+        const sun = new THREE.Vector3();
+        uniforms.u_sunDirection.value = sun.setFromSphericalCoords(1, this.sunPhi, this.sunTheta);
+        sky.material.uniforms.sunPosition.value.copy(sun);
         uniforms.u_sunColor.value = new THREE.Vector3(this.sunColor.r / 255, this.sunColor.g / 255, this.sunColor.b / 255);
         uniforms.u_sunStrength.value = this.sunStrength;
 
@@ -83,20 +84,20 @@ async function init() {
 
         u_resolution: {value: new THREE.Vector2(window.innerWidth, window.innerHeight)},
 
-        u_sunDirection: { value: new THREE.Vector3().setFromSphericalCoords(1, -1.5, 0.74) },
-        u_sunColor: { value: new THREE.Vector3(.80, .67, .47) },
-        u_sunStrength: { value: 50 },
+        u_sunDirection: { value: new THREE.Vector3().setFromSphericalCoords(1, cloudUniforms.sunPhi, cloudUniforms.sunTheta) },
+        u_sunColor: { value: new THREE.Vector3(cloudUniforms.sunColor.r / 255, cloudUniforms.sunColor.g / 255, cloudUniforms.sunColor.b / 255) },
+        u_sunStrength: { value: cloudUniforms.sunStrength },
 
-        u_ambientStrength: { value: 0.1 },
-        u_shapeSize: { value: 0.03 },
-        u_densityThreshold: { value: 0.02 },
-        u_transmittanceThreshold: { value: 0.05 },
+        u_ambientStrength: { value: cloudUniforms.ambientStrength },
+        u_shapeSize: { value: cloudUniforms.shapeSize },
+        u_densityThreshold: { value: cloudUniforms.densityThreshold },
+        u_transmittanceThreshold: { value: cloudUniforms.densityThreshold },
 
-        u_cloudSteps: { value: 128 },
-        u_cloudStepDelta: { value: 2. },
+        u_cloudSteps: { value: cloudUniforms.cloudSteps },
+        u_cloudStepDelta: { value: cloudUniforms.cloudStepDelta },
 
-        u_lightSteps: { value: 10 },
-        u_lightStepDelta: { value: 4. },
+        u_lightSteps: { value: cloudUniforms.lightSteps },
+        u_lightStepDelta: { value: cloudUniforms.lightStepDelta },
     };
 
     let fShader = fragment;
@@ -136,29 +137,6 @@ async function init() {
 
     initSky();
 
-    function initCloudGui() {
-        const folder = gui.addFolder('Cloud');
-
-        folder.add(cloudUniforms, 'sunTheta', 0, Math.PI / 2 );
-        folder.add(cloudUniforms, 'sunPhi', 0, 2 * Math.PI);
-
-        folder.addColor(cloudUniforms, 'sunColor', 255);
-        folder.add(cloudUniforms, 'sunStrength', 0, 100);
-        folder.add(cloudUniforms, 'ambientStrength', 0, 1);
-        folder.add(cloudUniforms, 'shapeSize', 0, 0.1);
-        folder.add(cloudUniforms, 'densityThreshold', 0, 0.3);
-        folder.add(cloudUniforms, 'transmittanceThreshold', 0, 0.5);
-
-        folder.add(cloudUniforms, 'cloudSteps', 0, 256);
-        folder.add(cloudUniforms, 'cloudStepDelta', 0, 10);
-
-        folder.add(cloudUniforms, 'lightSteps', 0, 256);
-        folder.add(cloudUniforms, 'lightStepDelta', 0, 10);
-
-        folder.add(cloudUniforms, 'updateCloud');
-
-    }
-
     initCloudGui();
 
     window.addEventListener('resize', () => {
@@ -167,6 +145,29 @@ async function init() {
 
         if (renderer) renderer.setSize(window.innerWidth, window.innerHeight);
     });
+
+}
+
+function initCloudGui() {
+    const folder = gui.addFolder('Cloud');
+
+    folder.add(cloudUniforms, 'sunTheta', 0, 2 * Math.PI );
+    folder.add(cloudUniforms, 'sunPhi', -Math.PI / 2, Math.PI / 2);
+
+    folder.addColor(cloudUniforms, 'sunColor', 255);
+    folder.add(cloudUniforms, 'sunStrength', 0, 100);
+    folder.add(cloudUniforms, 'ambientStrength', 0, 1);
+    folder.add(cloudUniforms, 'shapeSize', 0, 0.1);
+    folder.add(cloudUniforms, 'densityThreshold', 0, 0.3);
+    folder.add(cloudUniforms, 'transmittanceThreshold', 0, 0.5);
+
+    folder.add(cloudUniforms, 'cloudSteps', 0, 256);
+    folder.add(cloudUniforms, 'cloudStepDelta', 0, 10);
+
+    folder.add(cloudUniforms, 'lightSteps', 0, 256);
+    folder.add(cloudUniforms, 'lightStepDelta', 0, 10);
+
+    folder.add(cloudUniforms, 'updateCloud');
 
 }
 
@@ -199,10 +200,7 @@ function initSky() {
         uniforms[ 'mieCoefficient' ].value = effectController.mieCoefficient;
         uniforms[ 'mieDirectionalG' ].value = effectController.mieDirectionalG;
 
-        const phi = THREE.MathUtils.degToRad( 90 - effectController.elevation );
-        const theta = THREE.MathUtils.degToRad( effectController.azimuth );
-
-        sun.setFromSphericalCoords( 1, phi, theta );
+        sun.setFromSphericalCoords( 1, cloudUniforms.sunPhi, cloudUniforms.sunTheta );
 
         uniforms[ 'sunPosition' ].value.copy( sun );
 
@@ -210,13 +208,13 @@ function initSky() {
 
     }
 
-    gui.add( effectController, 'turbidity', 0.0, 20.0, 0.1 ).onChange( guiChanged );
-    gui.add( effectController, 'rayleigh', 0.0, 4, 0.001 ).onChange( guiChanged );
-    gui.add( effectController, 'mieCoefficient', 0.0, 0.1, 0.001 ).onChange( guiChanged );
-    gui.add( effectController, 'mieDirectionalG', 0.0, 1, 0.001 ).onChange( guiChanged );
-    gui.add( effectController, 'elevation', 0, 90, 0.1 ).onChange( guiChanged );
-    gui.add( effectController, 'azimuth', - 180, 180, 0.1 ).onChange( guiChanged );
-    gui.add( effectController, 'exposure', 0, 1, 0.0001 ).onChange( guiChanged );
+    const folder = gui.addFolder('Sky');
+
+    folder.add( effectController, 'turbidity', 0.0, 20.0, 0.1 ).onChange( guiChanged );
+    folder.add( effectController, 'rayleigh', 0.0, 4, 0.001 ).onChange( guiChanged );
+    folder.add( effectController, 'mieCoefficient', 0.0, 0.1, 0.001 ).onChange( guiChanged );
+    folder.add( effectController, 'mieDirectionalG', 0.0, 1, 0.001 ).onChange( guiChanged );
+    folder.add( effectController, 'exposure', 0, 1, 0.0001 ).onChange( guiChanged );
 
     guiChanged();
 
